@@ -79,3 +79,46 @@ def protected_route(token_data: dict = Depends(validate_token)):
 @app.get("/api/health")
 def health_check():
     return {"status": "healthy"}
+
+
+
+
+
+
+# Cell 1: Install dependencies
+!pip install pyjwt[crypto] requests msal
+
+# Cell 2: Test token validation function directly
+import jwt
+from jwt import PyJWKClient
+
+TENANT_ID = "your-tenant-id"
+CLIENT_ID = "your-backend-api-client-id"
+JWKS_URL = f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys"
+ISSUER = f"https://sts.windows.net/{TENANT_ID}/"
+
+def validate_token(token: str) -> dict:
+    """Validate Azure AD token and return claims."""
+    jwks_client = PyJWKClient(JWKS_URL)
+    signing_key = jwks_client.get_signing_key_from_jwt(token)
+    
+    payload = jwt.decode(
+        token,
+        signing_key.key,
+        algorithms=["RS256"],
+        audience=CLIENT_ID,
+        issuer=ISSUER,
+    )
+    return payload
+
+# Cell 3: Test with your token
+access_token = "eyJ0eXAiOiJKV1Q..."  # Paste your token here
+
+try:
+    claims = validate_token(access_token)
+    print("✅ Token is valid!")
+    print(f"User: {claims.get('preferred_username') or claims.get('upn')}")
+    print(f"Name: {claims.get('name')}")
+    print(f"Expires: {claims.get('exp')}")
+except Exception as e:
+    print(f"❌ Token validation failed: {e}")
